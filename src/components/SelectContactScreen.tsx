@@ -117,13 +117,13 @@ export function SelectContactScreen({ onContactSelected, onBack }: SelectContact
   return (
     <div className="w-full">
       <Dialog open={isModalOpen} onOpenChange={(open) => { setIsModalOpen(open); if (!open && onBack) onBack(); }}>
-        <DialogContent>
+        <DialogContent className="left-0 right-0 w-screen max-w-[100vw] top-[8vh] h-[80vh] sm:w-auto sm:max-w-lg sm:top-1/2 sm:-translate-y-1/2 flex flex-col">
           <DialogHeader>
             <DialogTitle>Выбор контакта</DialogTitle>
             <DialogDescription>Найдите контакт по имени, телефону или организации</DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="space-y-4 flex-1 min-h-0">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
@@ -134,7 +134,7 @@ export function SelectContactScreen({ onContactSelected, onBack }: SelectContact
               />
             </div>
 
-            <ScrollArea className="w-full h-[300px] border-2 rounded-lg">
+            <ScrollArea className="w-full flex-1 min-h-0 border-2 rounded-lg">
               <div className="p-2 space-y-1">
                 {loading && <div className="p-3 text-sm text-muted-foreground">Загрузка контактов…</div>}
                 {error && !loading && <div className="p-3 text-sm text-destructive">{error}</div>}
@@ -189,4 +189,3 @@ export function SelectContactScreen({ onContactSelected, onBack }: SelectContact
     </div>
   );
 }
-
