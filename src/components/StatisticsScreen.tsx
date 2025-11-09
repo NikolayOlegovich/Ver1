@@ -125,7 +125,7 @@ export function StatisticsScreen({ onNavigate, hasContact }: StatisticsScreenPro
   }, [contacts, totalContacts]);
 
   return (
-    <div className="p-6 h-full flex flex-col gap-6">
+    <div className="p-6 space-y-6">
       {/* Summary card */}
       <Card className="p-5 border-2">
         <div className="grid grid-cols-[1fr_auto] items-center">
@@ -201,28 +201,25 @@ export function StatisticsScreen({ onNavigate, hasContact }: StatisticsScreenPro
         )}
       </Card>
 
-      {/* Stretch zone: two blocks that grow to fill free space */}
-      <div className="flex-1 grid gap-4 grid-rows-2">
-        {/* Weekly progress */}
-        <Card className="p-4 border-2 min-h-[140px] flex flex-col">
-          <h3 className="mb-2">Прогресс за неделю</h3>
-          <p className="text-sm text-muted-foreground">
-            Поддержание теплоты отношений (плейсхолдер).
-          </p>
-          <div className="mt-3">
-            <Progress value={Math.min(qualityPercent, 100)} />
-          </div>
-        </Card>
+      {/* Прогресс за неделю */}
+      <Card className="p-4 border-2 min-h-[220px]">
+        <h3 className="mb-2">Прогресс за неделю</h3>
+        <p className="text-sm text-muted-foreground">
+          Поддержание теплоты отношений (плейсхолдер).
+        </p>
+        <div className="mt-3">
+          <Progress value={Math.min(qualityPercent, 100)} />
+        </div>
+      </Card>
 
-        {/* Suggestions */}
-        <Card className="p-4 border-2 min-h-[180px] flex flex-col">
-          <h3 className="mb-2">Предлагаю сделать</h3>
-          <ul className="list-disc pl-5 space-y-1 text-sm">
-            <li>Поздравить ФИО</li>
-            <li>Давно не общались</li>
-          </ul>
-        </Card>
-      </div>
+      {/* Предлагаю сделать */}
+      <Card className="p-4 border-2 min-h-[260px]">
+        <h3 className="mb-2">Предлагаю сделать</h3>
+        <ul className="list-disc pl-5 space-y-1 text-sm">
+          <li>Поздравить ФИО</li>
+          <li>Давно не общались</li>
+        </ul>
+      </Card>
 
       {/* Actions */}
       <div className="grid gap-3 sm:grid-cols-3">
