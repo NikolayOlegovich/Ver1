@@ -5,20 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Checkbox } from "./ui/checkbox";
 import { Label } from "./ui/label";
 import { Separator } from "./ui/separator";
-import { ScrollArea } from "./ui/scroll-area";
-import {
-  User,
-  Phone,
-  Building,
-  Mail,
-  MapPin,
-  Calendar,
-  Briefcase,
-  ExternalLink,
-  ChevronDown,
-  ChevronUp,
-  Link2,
-} from "lucide-react";
+import { User, Phone, Building, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
 
 interface Contact {
@@ -51,11 +38,11 @@ const mockProfiles: PublicProfile[] = [
     profileUrl: "https://linkedin.com/in/sarahjohnson",
     photo: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop",
     data: [
-      { key: "city", label: "Город", value: "Сан-Франциско, Калифорния" },
-      { key: "profession", label: "Профессия", value: "Старший инженер-программист" },
+      { key: "city", label: "Город", value: "Санкт‑Петербург, Россия" },
+      { key: "profession", label: "Профессия", value: "Инженер‑разработчик" },
       { key: "workplace", label: "Место работы", value: "Tech Corp" },
       { key: "experience", label: "Опыт", value: "8 лет" },
-      { key: "education", label: "Образование", value: "Стэнфордский университет" },
+      { key: "education", label: "Образование", value: "ИТ‑университет" },
     ],
   },
   {
@@ -63,10 +50,10 @@ const mockProfiles: PublicProfile[] = [
     profileUrl: "https://facebook.com/sarah.johnson",
     photo: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop",
     data: [
-      { key: "city", label: "Город", value: "Сан-Франциско, Калифорния" },
-      { key: "birthdate", label: "Дата рождения", value: "15 марта 1990" },
-      { key: "hometown", label: "Родной город", value: "Бостон, Массачусетс" },
-      { key: "relationship", label: "Отношения", value: "Не замужем" },
+      { key: "city", label: "Город", value: "Санкт‑Петербург, Россия" },
+      { key: "birthdate", label: "Дата рождения", value: "15 августа 1990" },
+      { key: "hometown", label: "Родной город", value: "Иваново, Россия" },
+      { key: "relationship", label: "Семейное положение", value: "Не женат/не замужем" },
     ],
   },
   {
@@ -74,10 +61,10 @@ const mockProfiles: PublicProfile[] = [
     profileUrl: "https://twitter.com/sarahjdev",
     photo: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop",
     data: [
-      { key: "bio", label: "Биография", value: "Инженер-программист | Энтузиаст технологий | Любитель кофе" },
-      { key: "location", label: "Местоположение", value: "Район залива Сан-Франциско" },
-      { key: "website", label: "Веб-сайт", value: "sarahjohnson.dev" },
-      { key: "followers", label: "Подписчики", value: "2,453" },
+      { key: "bio", label: "Био", value: "Разработчик | OSS энтузиаст | бэкенд" },
+      { key: "location", label: "Локация", value: "Россия, Санкт‑Петербург" },
+      { key: "website", label: "Сайт", value: "sarahjohnson.dev" },
+      { key: "followers", label: "Подписчики", value: "2 453" },
     ],
   },
 ];
@@ -123,7 +110,7 @@ export function DossierScreen({ contact }: DossierScreenProps) {
             <div className="flex-1 space-y-3">
               <div>
                 <h2 className="mb-1">{contact.name}</h2>
-                <p className="text-muted-foreground text-sm">Контактная информация</p>
+                <p className="text-muted-foreground text-sm">Основные данные контакта</p>
               </div>
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm">
@@ -198,18 +185,15 @@ export function DossierScreen({ contact }: DossierScreenProps) {
                       className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
                     >
                       <ExternalLink className="w-4 h-4" />
-                      Посмотреть оригинальный профиль
+                      Открыть профиль
                     </a>
 
-                    {/* Link Profile Button */}
-                    <Button
-                      onClick={() => handleLinkProfile(profile)}
-                      className="w-full"
-                      variant="default"
-                    >
-                      <Link2 className="w-4 h-4 mr-2" />
-                      Связать профиль с контактом
-                    </Button>
+                    {/* Link/Import */}
+                    <div>
+                      <Button variant="outline" onClick={() => handleLinkProfile(profile)}>
+                        Связать профиль
+                      </Button>
+                    </div>
                   </div>
                 </CollapsibleContent>
               </Collapsible>
@@ -218,67 +202,35 @@ export function DossierScreen({ contact }: DossierScreenProps) {
         </div>
       </div>
 
-      {/* Link Profile Modal */}
-      <Dialog open={!!linkingProfile} onOpenChange={() => setLinkingProfile(null)}>
-        <DialogContent className="w-full max-w-[calc(100vw-2rem)]">
-          <DialogHeader>
-            <DialogTitle>Связать профиль {linkingProfile?.source}</DialogTitle>
-            <DialogDescription>
-              Выберите поля, которые хотите импортировать в контакт
-            </DialogDescription>
-          </DialogHeader>
+      {/* Import Dialog */}
+      {linkingProfile && (
+        <Dialog open onOpenChange={() => setLinkingProfile(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Импорт данных</DialogTitle>
+              <DialogDescription>Выберите поля для импорта из {linkingProfile.source}</DialogDescription>
+            </DialogHeader>
 
-          <ScrollArea className="max-h-[400px]">
-            <div className="space-y-4 pr-4">
-
-              <div className="space-y-3">
-                {linkingProfile?.data.map((item) => (
-                  <div key={item.key} className="flex items-start gap-3 p-3 border-2 rounded-lg">
-                    <Checkbox
-                      id={item.key}
-                      checked={selectedFields.includes(item.key)}
-                      onCheckedChange={() => toggleField(item.key)}
-                      className="mt-0.5"
-                    />
-                    <div className="flex-1 space-y-1">
-                      <Label htmlFor={item.key} className="cursor-pointer">
-                        {item.label}
-                      </Label>
-                      <div className="text-sm text-muted-foreground">{item.value}</div>
-                    </div>
+            <div className="space-y-3">
+              {linkingProfile.data.map((item) => (
+                <label key={item.key} className="flex items-center gap-3">
+                  <Checkbox checked={selectedFields.includes(item.key)} onCheckedChange={() => toggleField(item.key)} />
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">{item.label}</div>
+                    <div className="text-xs text-muted-foreground">{item.value}</div>
                   </div>
-                ))}
-
-                <div className="flex items-start gap-3 p-3 border-2 rounded-lg">
-                  <Checkbox
-                    id="profile-url"
-                    checked={selectedFields.includes("profile-url")}
-                    onCheckedChange={() => toggleField("profile-url")}
-                    className="mt-0.5"
-                  />
-                  <div className="flex-1 space-y-1">
-                    <Label htmlFor="profile-url" className="cursor-pointer">
-                      URL социального профиля
-                    </Label>
-                    <div className="text-sm text-muted-foreground break-all">
-                      {linkingProfile?.profileUrl}
-                    </div>
-                  </div>
-                </div>
-              </div>
+                </label>
+              ))}
             </div>
-          </ScrollArea>
 
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setLinkingProfile(null)}>
-              Отмена
-            </Button>
-            <Button onClick={handleImportFields} disabled={selectedFields.length === 0}>
-              Импортировать выбранные поля ({selectedFields.length})
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button onClick={handleImportFields} disabled={selectedFields.length === 0}>Импортировать</Button>
+              <Button variant="outline" onClick={() => setLinkingProfile(null)}>Отмена</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }
+

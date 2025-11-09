@@ -23,7 +23,7 @@ export function StatisticsScreen({ onNavigate, hasContact }: StatisticsScreenPro
   const MAX_POINTS = useMemo(() => Object.values(WEIGHTS).reduce((s, v) => s + v, 0), []);
 
   const normalize = (c: any) => {
-    const first = c?.name?.given || c?.name?.first || c?.firstName;
+    const first = c?.name?.given || c?.name?.first || c?.firstName || c?.name?.display;
     const last = c?.name?.family || c?.name?.last || c?.lastName;
     const phones = c?.phones || c?.phoneNumbers || [];
     const org = c?.organization?.company || c?.organization?.name || c?.company;
@@ -56,7 +56,7 @@ export function StatisticsScreen({ onNavigate, hasContact }: StatisticsScreenPro
         setError(null);
         const platform = Capacitor.getPlatform();
         if (platform === "web") {
-          setError("Статистика доступна на Android/iOS (доступ к контактам).");
+          setError("Чтение контактов доступно только на Android/iOS (Capacitor).");
           setContacts([]);
           return;
         }
@@ -69,7 +69,7 @@ export function StatisticsScreen({ onNavigate, hasContact }: StatisticsScreenPro
         } as any);
         setContacts(Array.isArray(result) ? result : result?.contacts ?? []);
       } catch (e: any) {
-        setError(e?.message || "Не удалось загрузить контакты.");
+        setError(e?.message || "Не удалось получить контакты.");
         setContacts([]);
       } finally {
         setLoading(false);
@@ -112,7 +112,7 @@ export function StatisticsScreen({ onNavigate, hasContact }: StatisticsScreenPro
     }
     const qp = Math.round(sumPercents / totalContacts);
     const cov: CoverageRow[] = [
-      { key: "fio", label: "ФИО", weight: WEIGHTS.fio, percent: Math.round((fioEarnedTotal / (WEIGHTS.fio * totalContacts)) * 100) },
+      { key: "fio", label: "ФИО", weight: WEIGHTS.fio, percent: Math.round((fioEarnedTotal / totalContacts) * (100 / WEIGHTS.fio)) },
       { key: "phone", label: "Телефон", weight: WEIGHTS.phone, percent: Math.round((phone / totalContacts) * 100) },
       { key: "org", label: "Организация", weight: WEIGHTS.org, percent: Math.round((org / totalContacts) * 100) },
       { key: "birthday", label: "День рождения", weight: WEIGHTS.birthday, percent: Math.round((birthday / totalContacts) * 100) },
@@ -156,7 +156,7 @@ export function StatisticsScreen({ onNavigate, hasContact }: StatisticsScreenPro
         {!error && (
           <div className="mt-2">
             <div className="flex items-baseline justify-center gap-2">
-              <span className="text-sm font-semibold">Индекс качества контактов</span>
+              <span className="text-sm font-semibold">Качество данных контактов</span>
               <span className="text-sm font-semibold">{qualityPercent}%</span>
             </div>
             <div className="flex items-center justify-center mt-2">
@@ -171,7 +171,7 @@ export function StatisticsScreen({ onNavigate, hasContact }: StatisticsScreenPro
           <div className="mt-4 space-y-6">
             <div className="p-4 border rounded-lg">
               <div className="flex flex-col items-center space-y-4">
-                <h2 className="text-muted-foreground">Индекс качества контактов</h2>
+                <h2 className="text-muted-foreground">Качество данных контактов</h2>
                 <div className="relative w-48 h-48 flex items-center justify-center">
                   <svg className="w-full h-full -rotate-90">
                     <circle cx="96" cy="96" r="88" stroke="currentColor" strokeWidth="12" fill="none" className="text-muted" />
@@ -179,84 +179,41 @@ export function StatisticsScreen({ onNavigate, hasContact }: StatisticsScreenPro
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <span className="text-5xl">{qualityPercent}%</span>
-                    <span className="text-muted-foreground text-sm mt-1">Заполненность</span>
+                    <span className="text-sm text-muted-foreground mt-1">средняя полнота данных</span>
                   </div>
                 </div>
-                <p className="text-center text-sm text-muted-foreground max-w-xs">Процент — среднее по всем контактам устройства. Вес полей: ФИО (2), Телефон (2), Организация (3), День рождения (3), Email (1), Адрес (1), Сайт (1), Заметки (1).</p>
               </div>
             </div>
 
-            <div className="p-4 border rounded-lg">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h3>Заполняемость по полям</h3>
-                  <span className="text-sm text-muted-foreground">Вес влияет на оценку</span>
-                </div>
-                <div className="space-y-3">
-                  {coverage.map((row) => (
-                    <div key={row.key} className="space-y-1.5">
-                      <div className="flex flex-col items-center justify-center">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">{row.label}</span>
-                          <span className="text-xs text-muted-foreground">вес {row.weight}</span>
-                        </div>
-                        <span className="text-xs text-muted-foreground">{row.percent}%</span>
-                      </div>
-                      <Progress value={row.percent} className="h-1.5" />
-                    </div>
-                  ))}
-                </div>
-              </div>
+            {/* Coverage rows */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              {coverage.map((row) => (
+                <Card key={row.key} className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span>{row.label}</span>
+                    <span className="text-sm text-muted-foreground">{row.percent}%</span>
+                  </div>
+                  <Progress value={row.percent} />
+                </Card>
+              ))}
             </div>
           </div>
         )}
       </Card>
 
-      <Card className="p-5 border-2">
-        <h3 className="font-medium">Прогресс за неделю</h3>
-        <p className="text-sm text-muted-foreground mt-2">Поддержание теплоты отношений (плейсхолдер).</p>
-      </Card>
-      <Card className="p-5 border-2">
-        <h3 className="font-medium">Предлагаю сделать</h3>
-        <ul className="mt-2 space-y-1 text-sm">
-          <li>• Поздравить ФИО</li>
-          <li>• Давно не общались</li>
-        </ul>
-      </Card>
-
-      <div className="flex items-center justify-around py-2">
-        <button
-          type="button"
-          onClick={() => onNavigate?.("select")}
-          className="flex flex-col items-center gap-1 px-3 py-2 rounded-md hover:bg-accent"
-        >
-          <UserPlus className="w-6 h-6" />
-          <span className="text-xs">Выбрать контакт</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => onNavigate?.("dossier")}
-          disabled={!hasContact}
-          className={`flex flex-col items-center gap-1 px-3 py-2 rounded-md ${
-            hasContact ? "hover:bg-accent" : "opacity-50 cursor-not-allowed"
-          }`}
-        >
-          <FileText className="w-6 h-6" />
-          <span className="text-xs">Досье</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => onNavigate?.("categories")}
-          className="flex flex-col items-center gap-1 px-3 py-2 rounded-md hover:bg-accent"
-        >
-          <FolderTree className="w-6 h-6" />
-          <span className="text-xs">Категории</span>
-        </button>
+      {/* Actions */}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Button variant="outline" onClick={() => onNavigate?.("select")}>
+          <UserPlus className="w-4 h-4 mr-2" /> Выбрать контакт
+        </Button>
+        <Button variant="outline" onClick={() => onNavigate?.("dossier")} disabled={!hasContact}>
+          <FileText className="w-4 h-4 mr-2" /> Досье
+        </Button>
+        <Button variant="outline" onClick={() => onNavigate?.("categories")}>
+          <FolderTree className="w-4 h-4 mr-2" /> Категории
+        </Button>
       </div>
     </div>
   );
 }
-
-
-
 

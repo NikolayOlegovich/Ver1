@@ -23,9 +23,10 @@ interface Contact {
 
 interface SelectContactScreenProps {
   onContactSelected: (contact: Contact) => void;
+  onBack?: () => void;
 }
 
-export function SelectContactScreen({ onContactSelected }: SelectContactScreenProps) {
+export function SelectContactScreen({ onContactSelected, onBack }: SelectContactScreenProps) {
   const [isModalOpen, setIsModalOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
@@ -43,12 +44,11 @@ export function SelectContactScreen({ onContactSelected }: SelectContactScreenPr
     try {
       const platform = Capacitor.getPlatform();
       const anyContacts: any = Contacts as any;
-      // На Android/iOS используем requestPermissions — getPermissions может быть не реализован
       if ((platform === "android" || platform === "ios") && typeof anyContacts.requestPermissions === "function") {
         await anyContacts.requestPermissions();
       }
     } catch {
-      // доступ будет проверен при getContacts
+      // ignore
     }
   };
 
@@ -58,7 +58,7 @@ export function SelectContactScreen({ onContactSelected }: SelectContactScreenPr
     try {
       const platform = Capacitor.getPlatform();
       if (platform === "web") {
-        setError("Доступ к контактам поддерживается только на Android/iOS (Capacitor).");
+        setError("Плагин контактов недоступен в браузере. Запустите на Android/iOS (Capacitor).");
         setContacts([]);
         return;
       }
@@ -116,8 +116,8 @@ export function SelectContactScreen({ onContactSelected }: SelectContactScreenPr
 
   return (
     <div className="w-full">
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="w-full max-w-[calc(100vw-2rem)]">
+      <Dialog open={isModalOpen} onOpenChange={(open) => { setIsModalOpen(open); if (!open && onBack) onBack(); }}>
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Выбор контакта</DialogTitle>
             <DialogDescription>Найдите контакт по имени, телефону или организации</DialogDescription>
@@ -127,19 +127,19 @@ export function SelectContactScreen({ onContactSelected }: SelectContactScreenPr
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Поиск по контактам..."
+                placeholder="Поиск по контактам…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 border-2"
               />
             </div>
 
-            <ScrollArea className="h-[300px] border-2 rounded-lg">
+            <ScrollArea className="w-full h-[300px] border-2 rounded-lg">
               <div className="p-2 space-y-1">
-                {loading && <div className="p-3 text-sm text-muted-foreground">Загрузка контактов...</div>}
+                {loading && <div className="p-3 text-sm text-muted-foreground">Загрузка контактов…</div>}
                 {error && !loading && <div className="p-3 text-sm text-destructive">{error}</div>}
                 {!loading && !error && filteredContacts.length === 0 && (
-                  <div className="p-3 text-sm text-muted-foreground">Контакты не найдены</div>
+                  <div className="p-3 text-sm text-muted-foreground">Ничего не найдено</div>
                 )}
                 {!loading && !error &&
                   filteredContacts.map((contact) => (
@@ -159,14 +159,12 @@ export function SelectContactScreen({ onContactSelected }: SelectContactScreenPr
                         <div className="flex-1 min-w-0">
                           <div className="font-medium truncate">{contact.name}</div>
                           {contact.phone && (
-                            <div className="text-sm opacity-80 flex items-center gap-1 mt-0.5">
-                              <Phone className="w-3 h-3" />
+                            <div className="text-sm opacity-80 flex items-center gap-1 mt-0.5 break-all"><Phone className="w-3 h-3" />
                               {contact.phone}
                             </div>
                           )}
                           {contact.organization && (
-                            <div className="text-sm opacity-80 flex items-center gap-1 mt-0.5">
-                              <Building className="w-3 h-3" />
+                            <div className="text-sm opacity-80 flex items-center gap-1 mt-0.5 break-words"><Building className="w-3 h-3" />
                               {contact.organization}
                             </div>
                           )}
@@ -178,9 +176,12 @@ export function SelectContactScreen({ onContactSelected }: SelectContactScreenPr
             </ScrollArea>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="gap-2 flex flex-col">
             <Button onClick={handleContinue} disabled={!selectedContact} className="w-full" size="lg">
               Продолжить
+            </Button>
+            <Button variant="outline" onClick={() => { setIsModalOpen(false); if (onBack) onBack(); }} className="w-full" size="lg">
+              Назад
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -188,3 +189,4 @@ export function SelectContactScreen({ onContactSelected }: SelectContactScreenPr
     </div>
   );
 }
+
