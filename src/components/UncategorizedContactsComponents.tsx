@@ -1,7 +1,14 @@
 import { useState } from "react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "./ui/dialog";
 import { Checkbox } from "./ui/checkbox";
 import { Label } from "./ui/label";
 import { ScrollArea } from "./ui/scroll-area";
@@ -45,7 +52,7 @@ export function UncategorizedContactsList({ contacts, onBack, onSelectContact }:
             </Button>
             <div>
               <DialogTitle>Некатегоризированные контакты</DialogTitle>
-              <DialogDescription>Выберите контакт для категоризации</DialogDescription>
+              <DialogDescription>Выберите контакт для уточнения</DialogDescription>
             </div>
           </div>
         </DialogHeader>
@@ -97,8 +104,8 @@ export function Tag2RefinementScreen({ category, contact, tag2Data, onBack, onCo
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div>
-              <DialogTitle>Уточнение по тегам</DialogTitle>
-              <DialogDescription>{category?.name}: выберите уточняющие теги</DialogDescription>
+              <DialogTitle>Уточнение по подкатегории</DialogTitle>
+              <DialogDescription>{category?.name}: выберите подходящие теги</DialogDescription>
             </div>
           </div>
         </DialogHeader>
