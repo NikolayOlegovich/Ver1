@@ -1,16 +1,8 @@
 import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "./ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Search, User, Building, Phone } from "lucide-react";
-import { ScrollArea } from "./ui/scroll-area";
 import { Capacitor } from "@capacitor/core";
 import { Contacts } from "@capacitor-community/contacts";
 
@@ -33,12 +25,14 @@ export function SelectContactScreen({ onContactSelected, onBack }: SelectContact
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(5);
 
   const filteredContacts = contacts.filter((contact) =>
     contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     contact.phone.includes(searchQuery) ||
     (contact.organization?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false),
   );
+  const visibleContacts = filteredContacts.slice(0, visibleCount);
 
   const ensurePermissions = async () => {
     try {
@@ -58,7 +52,7 @@ export function SelectContactScreen({ onContactSelected, onBack }: SelectContact
     try {
       const platform = Capacitor.getPlatform();
       if (platform === "web") {
-        setError("Плагин контактов недоступен в браузере. Запустите на Android/iOS (Capacitor).");
+        setError("Чтение контактов доступно только на Android/iOS (Capacitor).");
         setContacts([]);
         return;
       }
@@ -80,14 +74,14 @@ export function SelectContactScreen({ onContactSelected, onBack }: SelectContact
           const name = (nameParts[0] || "Без имени").trim();
           const phone = c?.phones?.[0]?.number || c?.phoneNumbers?.[0]?.number || "";
           const organization = c?.organization?.company || c?.organization?.name || undefined;
-          if (!id && !name && !phone) return null;
+          if (!id && !name && !phone) return null as any;
           return { id: String(id || name || phone), name, phone, organization } as Contact;
         })
         .filter(Boolean) as Contact[];
 
       setContacts(normalized);
     } catch (err: any) {
-      const message = err?.message || "Не удалось получить контакты. Проверьте разрешения.";
+      const message = err?.message || "Не удалось загрузить контакты. Повторите попытку.";
       setError(message);
       setContacts([]);
     } finally {
@@ -95,9 +89,9 @@ export function SelectContactScreen({ onContactSelected, onBack }: SelectContact
     }
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (selectedContact) {
-      onContactSelected(selectedContact);
+      await onContactSelected(selectedContact);
       setIsModalOpen(false);
       setSearchQuery("");
       setSelectedContact(null);
@@ -111,30 +105,41 @@ export function SelectContactScreen({ onContactSelected, onBack }: SelectContact
       setSearchQuery("");
       setSelectedContact(null);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isModalOpen]);
+
+  // Reset lazy window on search or data change
+  useEffect(() => {
+    setVisibleCount(5);
+  }, [searchQuery, contacts.length]);
+
+  const handleScroll = (e: any) => {
+    const el = e.currentTarget as HTMLDivElement;
+    if (el && el.scrollTop + el.clientHeight >= el.scrollHeight - 24) {
+      setVisibleCount((n) => Math.min(n + 5, filteredContacts.length));
+    }
+  };
 
   return (
     <div className="w-full">
-      <Dialog open={isModalOpen} onOpenChange={(open) => { setIsModalOpen(open); if (!open && onBack) onBack(); }}>
-        <DialogContent className="left-0 right-0 w-screen max-w-[100vw] top-[8vh] h-[80vh] sm:w-auto sm:max-w-lg sm:top-1/2 sm:-translate-y-1/2 flex flex-col">
-          <DialogHeader>
+      <Dialog open={isModalOpen} onOpenChange={(open) => { setIsModalOpen(open); }}>
+        <DialogContent className="fixed inset-0 top-0 bottom-0 h-[100dvh] w-[100vw] max-w-none grid grid-rows-[auto,1fr,auto] rounded-none border-0 p-0 overflow-x-hidden">
+          <DialogHeader className="px-4 pt-4 pb-2">
             <DialogTitle>Выбор контакта</DialogTitle>
             <DialogDescription>Найдите контакт по имени, телефону или организации</DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 flex-1 min-h-0">
-            <div className="relative">
+          <div className="flex flex-col gap-4 min-h-0 px-4">
+            <div className="relative flex-shrink-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Поиск по контактам…"
+                placeholder="Поиск по контактам"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 border-2"
               />
             </div>
 
-            <ScrollArea className="w-full flex-1 min-h-0 border-2 rounded-lg">
+            <div className="w-full overflow-y-auto border-2 rounded-lg overscroll-contain" style={{ maxHeight: 420 }} onScroll={handleScroll}>
               <div className="p-2 space-y-1">
                 {loading && <div className="p-3 text-sm text-muted-foreground">Загрузка контактов…</div>}
                 {error && !loading && <div className="p-3 text-sm text-destructive">{error}</div>}
@@ -142,11 +147,11 @@ export function SelectContactScreen({ onContactSelected, onBack }: SelectContact
                   <div className="p-3 text-sm text-muted-foreground">Ничего не найдено</div>
                 )}
                 {!loading && !error &&
-                  filteredContacts.map((contact) => (
+                  visibleContacts.map((contact) => (
                     <button
                       key={contact.id}
                       onClick={() => setSelectedContact(contact)}
-                      className={`w-full text-left p-3 rounded-lg border-2 transition-colors ${
+                      className={`w-full text-left p-3 rounded-lg border-2 transition-colors min-h-[84px] ${
                         selectedContact?.id === contact.id
                           ? "bg-primary text-primary-foreground border-primary"
                           : "bg-card hover:bg-accent border-transparent"
@@ -173,16 +178,13 @@ export function SelectContactScreen({ onContactSelected, onBack }: SelectContact
                     </button>
                   ))}
               </div>
-            </ScrollArea>
+            </div>
+
           </div>
 
-          <DialogFooter className="gap-2 flex flex-col">
-            <Button onClick={handleContinue} disabled={!selectedContact} className="w-full" size="lg">
-              Продолжить
-            </Button>
-            <Button variant="outline" onClick={() => { setIsModalOpen(false); if (onBack) onBack(); }} className="w-full" size="lg">
-              Назад
-            </Button>
+          <DialogFooter className="gap-2 flex flex-col px-4 pb-4 pt-2 border-t bg-background">
+            <Button onClick={handleContinue} disabled={!selectedContact} className="w-full" size="lg">Продолжить</Button>
+            <Button variant="outline" onClick={() => { setIsModalOpen(false); if (onBack) onBack(); }} className="w-full" size="lg">Назад</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
