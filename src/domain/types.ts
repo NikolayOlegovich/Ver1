@@ -1,6 +1,6 @@
 export type UUID = string;
 
-export type Channel = 'meeting' | 'call' | 'chat' | 'email' | 'other';
+export type Channel = 'meeting' | 'offline' | 'call' | 'chat' | 'email' | 'other';
 export type Source = 'linkedin' | 'facebook' | 'telegram' | 'github' | 'website' | 'other';
 export type ReminderType = 'birthday' | 'followup' | 'nextStep';
 

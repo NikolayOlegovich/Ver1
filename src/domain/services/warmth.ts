@@ -6,6 +6,7 @@ export function applyInteractionWarmth(prev: number, interaction: Interaction, n
   let add = 0;
   switch (interaction.channel) {
     case 'meeting':
+    case 'offline':
       add = 25; break;
     case 'call':
     case 'chat':
@@ -29,4 +30,3 @@ export function decayWarmth(prev: number, lastAtIso: string, nowIso: string, tau
   const k = Math.exp(-dtDays / tauDays);
   return prev * k;
 }
-

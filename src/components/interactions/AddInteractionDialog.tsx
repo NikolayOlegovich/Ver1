@@ -27,9 +27,17 @@ export function AddInteractionDialog({ open, onOpenChange, contactId, onSubmit }
   const [keepInTouch, setKeepInTouch] = useState(false);
   const [ally, setAlly] = useState(false);
   const [nextStep, setNextStep] = useState('');
-  const [nextStepDue, setNextStepDue] = useState('');
-  const [createReminder, setCreateReminder] = useState(false);
+  const [nextStepDueDate, setNextStepDueDate] = useState('');
+  const [nextStepDueTime, setNextStepDueTime] = useState('');
   const [reminderAfterHours, setReminderAfterHours] = useState('');
+  const channelOptions = [
+    { id: 'meeting', label: 'OnLine' },
+    { id: 'offline', label: 'OffLine' },
+    { id: 'call', label: 'Звонок' },
+    { id: 'chat', label: 'Чат' },
+    { id: 'email', label: 'eMail' },
+    { id: 'other', label: 'Другое' },
+  ] as const;
 
   function combineLocalDateTime(d: string, t: string) {
     const time = (t && /^\d{2}:\d{2}$/.test(t)) ? `${t}:00` : '00:00:00';
@@ -39,6 +47,7 @@ export function AddInteractionDialog({ open, onOpenChange, contactId, onSubmit }
 
   const submit = async () => {
     const dt = combineLocalDateTime(date, time);
+    const nextStepDueDateTime = nextStepDueDate ? combineLocalDateTime(nextStepDueDate, nextStepDueTime || '00:00') : null;
     const minutes = durationUnit === 'hour' ? Math.round(durationValue * 60) : Math.round(durationValue);
     const i: Interaction = {
       id: crypto.randomUUID(),
@@ -52,7 +61,7 @@ export function AddInteractionDialog({ open, onOpenChange, contactId, onSubmit }
       keepInTouch,
       allyPotential: ally,
       nextStep: nextStep || undefined,
-      nextStepDue: nextStepDue ? new Date(nextStepDue).toISOString() : undefined,
+      nextStepDue: nextStepDueDateTime ? nextStepDueDateTime.toISOString() : undefined,
       nextStepDone: false,
     };
     await onSubmit(i);
@@ -63,15 +72,18 @@ export function AddInteractionDialog({ open, onOpenChange, contactId, onSubmit }
         await storage.contacts.upsert({ ...existing, lastInteractionAt: i.date, updatedAt: new Date().toISOString() } as any);
       }
     } catch {}
-    if (createReminder) {
+    const hoursOffset = reminderAfterHours && /^\d{1,4}$/.test(reminderAfterHours)
+      ? Number(reminderAfterHours)
+      : undefined;
+    const shouldCreateReminder = Boolean(nextStepDueDateTime || typeof hoursOffset === 'number');
+    if (shouldCreateReminder) {
       try {
         const storage = await createStorage();
         let dueAtIso: string;
-        if (nextStepDue) {
-          dueAtIso = new Date(nextStepDue).toISOString();
-        } else if (reminderAfterHours && /^\d{1,4}$/.test(reminderAfterHours)) {
-          const hours = Number(reminderAfterHours);
-          const due = new Date(dt.getTime() + hours * 60 * 60 * 1000);
+        if (nextStepDueDateTime) {
+          dueAtIso = nextStepDueDateTime.toISOString();
+        } else if (typeof hoursOffset === 'number') {
+          const due = new Date(dt.getTime() + hoursOffset * 60 * 60 * 1000);
           dueAtIso = due.toISOString();
         } else {
           dueAtIso = dt.toISOString();
@@ -98,23 +110,23 @@ export function AddInteractionDialog({ open, onOpenChange, contactId, onSubmit }
           <DialogDescription>Укажите дату, время, канал и детали взаимодействия.</DialogDescription>
         </DialogHeader>
 
-        {/* Контент: верх — две колонки, ниже — вертикальные блоки */}
-        <div className="grid gap-6 min-h-0 overflow-y-auto px-4 pb-2 grid-cols-2">
-          {/* Левая колонка: дата / время / длительность */}
-          <div className="flex flex-col gap-3">
-            <div>
-              <label className="text-sm">Дата</label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-12 rounded-xl" />
+        {/* Компактный контент: всё в одной колонке */}
+        <div className="flex flex-col gap-4 min-h-0 overflow-y-auto px-4 pb-2 text-sm">
+          {/* Дата / время / длительность в одной строке */}
+          <div className="flex flex-wrap gap-3 items-end">
+            <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
+              <label className="text-xs uppercase tracking-wide text-muted-foreground">Дата</label>
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-10 rounded-lg text-sm" />
             </div>
-            <div>
-              <label className="text-sm">Время</label>
-              <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="h-12 rounded-xl" />
+            <div className="flex flex-col gap-1 flex-1 min-w-[110px]">
+              <label className="text-xs uppercase tracking-wide text-muted-foreground">Время</label>
+              <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="h-10 rounded-lg text-sm" />
             </div>
-            <div>
-              <label className="text-sm">Длительность</label>
-              <div className="flex gap-3 items-center">
-                <Input type="number" min={0} step={1} value={durationValue} onChange={(e)=>setDurationValue(Number(e.target.value))} className="h-12 rounded-xl w-24" />
-                <select className="border rounded-xl h-12 px-3" value={durationUnit} onChange={(e)=>setDurationUnit(e.target.value as any)}>
+            <div className="flex flex-col gap-1 flex-1 min-w-[150px]">
+              <label className="text-xs uppercase tracking-wide text-muted-foreground">Длительность</label>
+              <div className="flex gap-2 items-center">
+                <Input type="number" min={0} step={1} value={durationValue} onChange={(e)=>setDurationValue(Number(e.target.value))} className="h-10 rounded-lg w-20 text-center text-sm" />
+                <select className="border rounded-lg h-10 px-2 text-sm bg-background" value={durationUnit} onChange={(e)=>setDurationUnit(e.target.value as any)}>
                   <option value="min">мин</option>
                   <option value="hour">ч</option>
                 </select>
@@ -122,76 +134,98 @@ export function AddInteractionDialog({ open, onOpenChange, contactId, onSubmit }
             </div>
           </div>
 
-          {/* Правая колонка: каналы */}
+          {/* Каналы взаимодействия: две строки */}
           <div>
-            <label className="text-sm mb-2 block text-center">Каналы взаимодействия</label>
-            <div className="grid grid-cols-2 gap-3">
-              {([
-                { id: 'meeting', label: 'Встреча' },
-                { id: 'call', label: 'Звонок' },
-                { id: 'chat', label: 'Чат' },
-                { id: 'email', label: 'Email' },
-                { id: 'other', label: 'Другое' },
-              ] as const).map((opt) => (
-                <Button
-                  key={opt.id}
-                  variant={channel === opt.id ? 'default' : 'outline'}
-                  className="w-full justify-center h-12 rounded-xl"
-                  onClick={()=>setChannel(opt.id as Interaction['channel'])}
-                >
-                  {opt.label}
-                </Button>
-              ))}
+            <label className="text-sm mb-2 block text-center font-medium">Каналы взаимодействия</label>
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                {channelOptions.slice(0, 3).map((opt) => (
+                  <Button
+                    key={opt.id}
+                    variant={channel === opt.id ? 'default' : 'outline'}
+                    className="flex-1 justify-center h-10 rounded-lg text-sm"
+                    onClick={()=>setChannel(opt.id as Interaction['channel'])}
+                  >
+                    {opt.label}
+                  </Button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                {channelOptions.slice(3).map((opt) => (
+                  <Button
+                    key={opt.id}
+                    variant={channel === opt.id ? 'default' : 'outline'}
+                    className="flex-1 justify-center h-10 rounded-lg text-sm"
+                    onClick={()=>setChannel(opt.id as Interaction['channel'])}
+                  >
+                    {opt.label}
+                  </Button>
+                ))}
+              </div>
             </div>
             {channel === 'other' && (
               <div className="mt-2">
-                <Input placeholder="Уточните канал" value={channelNote} onChange={(e)=>setChannelNote(e.target.value)} />
+                <Input placeholder="Уточните канал" value={channelNote} onChange={(e)=>setChannelNote(e.target.value)} className="h-10 rounded-lg text-sm" />
               </div>
             )}
           </div>
 
-          {/* Ниже — одиночные вертикальные блоки без колонок */}
-          <div className="col-span-2">
+          {/* Краткое описание */}
+          <div>
             <label className="text-sm mb-1 block">Краткое описание</label>
-            <Textarea rows={4} className="min-h-24 rounded-xl" value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="О чём было взаимодействие" />
+            <Textarea rows={3} className="min-h-[88px] rounded-lg text-sm" value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="О чём было взаимодействие" />
           </div>
 
-          <div className="col-span-2 flex flex-col gap-2">
-            <span className="text-sm">Полезность</span>
-            <ValueStars value={usefulness} onChange={setUsefulness} />
-            <div className="flex flex-col gap-2 mt-2">
-              <label className="flex items-center gap-2"><input type="checkbox" checked={keepInTouch} onChange={(e)=>setKeepInTouch(e.target.checked)} /> Поддерживать связь</label>
-              <label className="flex items-center gap-2"><input type="checkbox" checked={ally} onChange={(e)=>setAlly(e.target.checked)} /> Потенциальный союзник</label>
+          <div className="flex items-end gap-4 overflow-x-auto">
+            <div className="flex flex-col gap-1 min-w-[120px] shrink-0">
+              <span className="text-sm">Полезность</span>
+              <ValueStars value={usefulness} onChange={setUsefulness} />
             </div>
+            <label className="inline-flex items-start gap-2 text-xs leading-tight shrink-0">
+              <input className="mt-0.5" type="checkbox" checked={keepInTouch} onChange={(e)=>setKeepInTouch(e.target.checked)} />
+              <span className="whitespace-pre-line leading-tight">{`Поддерживать\nсвязь`}</span>
+            </label>
+            <label className="inline-flex items-start gap-2 text-xs leading-tight shrink-0">
+              <input className="mt-0.5" type="checkbox" checked={ally} onChange={(e)=>setAlly(e.target.checked)} />
+              <span className="whitespace-pre-line leading-tight">{`Потенциальный\nсоюзник`}</span>
+            </label>
           </div>
 
-          {/* Следующие шаги слева; справа — дата напоминания, чекбокс и "За N часов" */}
-          <div className="col-span-2 grid grid-cols-2 gap-4 items-start">
+          {/* Следующие шаги + напоминание */}
+          <div className="flex flex-col gap-3">
             <div>
               <label className="text-sm mb-1 block">Следующие шаги</label>
-              <Textarea rows={4} className="min-h-24 rounded-xl" value={nextStep} onChange={(e)=>setNextStep(e.target.value)} placeholder="Следующий шаг" />
+              <Textarea rows={3} className="min-h-[88px] rounded-lg text-sm" value={nextStep} onChange={(e)=>setNextStep(e.target.value)} placeholder="Следующий шаг" />
             </div>
-            <div className="flex flex-col gap-3">
-              <div>
-                <label className="text-sm mb-1 block">Дата напоминания</label>
-                <Input type="date" value={nextStepDue} onChange={(e)=>setNextStepDue(e.target.value)} className="h-12 rounded-xl w-[180px] sm:w-[220px]" />
-              </div>
-              <label className="flex items-center gap-2"><input type="checkbox" checked={createReminder} onChange={(e)=>setCreateReminder(e.target.checked)} /> Создать напоминание</label>
-              <div className="flex items-center gap-2">
-                <span className="text-sm">За</span>
-                <Input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="\\d*"
-                  value={reminderAfterHours}
-                  onChange={(e)=>{
-                    const v = (e.target.value || '').replace(/[^0-9]/g, '').slice(0, 4);
-                    setReminderAfterHours(v);
-                  }}
-                  className="h-12 rounded-xl w-20 text-center"
-                  placeholder="0"
-                />
-                <span className="text-sm">часов</span>
+            <div className="flex flex-col gap-2">
+              <span className="text-sm font-medium">Задать дату и время напоминания</span>
+              <div className="flex flex-wrap gap-3 items-end">
+                <div className="flex flex-col gap-1 flex-1 min-w-[180px] max-w-[240px]">
+                  <label className="text-xs text-muted-foreground uppercase tracking-wide">Дата</label>
+                  <Input type="date" value={nextStepDueDate} onChange={(e)=>setNextStepDueDate(e.target.value)} className="h-10 rounded-lg text-sm w-full" />
+                </div>
+                <div className="flex flex-col gap-1 flex-1 min-w-[140px] max-w-[200px]">
+                  <label className="text-xs text-muted-foreground uppercase tracking-wide">Время</label>
+                  <Input type="time" value={nextStepDueTime} onChange={(e)=>setNextStepDueTime(e.target.value)} className="h-10 rounded-lg text-sm w-full" />
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs uppercase tracking-wide text-muted-foreground">За</span>
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    max={9999}
+                    step={1}
+                    value={reminderAfterHours}
+                    onChange={(e)=>{
+                      const v = (e.target.value || '').replace(/[^0-9]/g, '').slice(0, 4);
+                      setReminderAfterHours(v);
+                    }}
+                    className="h-10 rounded-lg w-8 text-center text-sm"
+                    placeholder="0"
+                  />
+                  <span className="text-xs uppercase tracking-wide text-muted-foreground">часов</span>
+                </div>
               </div>
             </div>
           </div>
